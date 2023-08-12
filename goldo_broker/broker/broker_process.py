@@ -19,6 +19,7 @@ _sym_db = _pb.symbol_database.Default()
 LOGGER = logging.getLogger(__name__)
 
 
+# FIXME : TODO : REMOVE (reminder of the old broker implementation..)
 class ZmqBrokerCmd(enum.Enum):
     PUBLISH_TOPIC = 0
     REGISTER_CALLBACK = 1
@@ -34,8 +35,6 @@ class ZmqBrokerProcess(object):
     }
 
     def __init__(self):
-        # FIXME : TODO : TEST
-        #self._conn = conn
         self._context = Context.instance()
         self._poller = Poller()
         self._sockets = {}
@@ -58,10 +57,6 @@ class ZmqBrokerProcess(object):
 
         self.register_socket('main:rep', 'tcp://*:3301', 'bind', ProtobufCodec())
 
-        # FIXME : TODO : TEST
-        #self._poller.register(self._conn, zmq.POLLIN)
-        #self._socket_codecs[self._conn.fileno()] = ('parent', self.onBrokerCmd)
-
         socket_out = self._context.socket(zmq.PUB)
         socket_out.bind('tcp://*:3701')
         self._sockets['strat:pub'] = socket_out
@@ -79,35 +74,65 @@ class ZmqBrokerProcess(object):
             await asyncio.wait([self._readSocket(s, self._socket_codecs[s]) for s, e in events if e & zmq.POLLIN])
 
     async def onBrokerCmd(self, cmd):
-        cmd_code = int.from_bytes(cmd[0], 'little')
-        if cmd_code == ZmqBrokerCmd.REGISTER_CALLBACK.value:
-            pattern = cmd[1].decode('utf8')
-            callback_id = int.from_bytes(cmd[2],'little')
-            self._callbacks.append((re.compile(f"^{pattern}$"), callback_id))
-            return
-        if cmd_code == ZmqBrokerCmd.REGISTER_FORWARD.value:
-            pattern = cmd[1].decode('utf8')
-            self._forwards.append((re.compile(f"^{pattern}$"), cmd[2].decode('utf8')))
-            return
-        if cmd_code == ZmqBrokerCmd.PUBLISH_TOPIC.value:
-            # FIXME : TODO : TEST
-            topic = cmd[1].decode('utf8')
-            msg_class_name = cmd[2].decode('utf8')
-            msg_class = _sym_db.GetSymbol(msg_class_name)
+        topic_b, full_name_b, payload = cmd
+        topic = topic_b.decode('utf8')
+        if topic.startswith("broker/admin/"):
+            if topic == "broker/admin/cmd/register_callback":
+                full_name = full_name_b.decode('utf8')
+                msg_class = _sym_db.GetSymbol(full_name)
+                if msg_class is None:
+                    print ("broker/admin protocol error!")
+                    return
+                cmd_msg = msg_class()
+                cmd_msg.ParseFromString(payload)
+                pattern = cmd_msg.value
+                print ("received REGISTER_CALLBACK {}".format(pattern))
+                self._callbacks.append((re.compile(f"^{pattern}$"), 0))
+                return
+            elif topic == "broker/admin/cmd/register_forward":
+                full_name = full_name_b.decode('utf8')
+                msg_class = _sym_db.GetSymbol(full_name)
+                if msg_class is None:
+                    print ("broker/admin protocol error!")
+                    return
+                cmd_msg = msg_class()
+                cmd_msg.ParseFromString(payload)
+                pattern, forward_str = cmd_msg.value.split('>')
+                print ("received REGISTER_FORWARD {} {}".format(pattern,forward_str))
+                self._forwards.append((re.compile(f"^{pattern}$"), forward_str))
+                return
+            elif topic == "broker/admin/cmd/stop":
+                print ("received STOP")
+                print (" DEBUG GOLDO : sys.exit(0)")
+                sys.exit(0)
+            elif topic == "broker/admin/cmd/ping":
+                full_name = full_name_b.decode('utf8')
+                msg_class = _sym_db.GetSymbol(full_name)
+                if msg_class is None:
+                    print ("broker/admin protocol error!")
+                    return
+                cmd_msg = msg_class()
+                cmd_msg.ParseFromString(payload)
+                seq_no = cmd_msg.value
+                print ("received PING seq={}".format(seq_no))
+                topic = "broker/admin/cmd/pong"
+                await self.publishTopic(topic, cmd_msg)
+                return
+        else:
+            full_name = full_name_b.decode('utf8')
+            msg_class = _sym_db.GetSymbol(full_name)
             if msg_class is not None:
-                msg = msg_class()
-                msg.ParseFromString(cmd[3])
+                cmd_msg = msg_class()
+                cmd_msg.ParseFromString(payload)
             else:
-                msg = _sym_db.GetSymbol('google.protobuf.Empty')()
-            await self.publishTopic(topic, msg)
+                cmd_msg = _sym_db.GetSymbol('google.protobuf.Empty')()
+            await self.publishTopic(topic, cmd_msg)
             return
 
     async def _readSocket(self, socket, codec):
         if codec[0] == 'monitor':
             return await self._readSocketMonitor(socket)
         elif codec[0] == 'strat':
-            # FIXME : TODO : TEST
-            #return await self.onBrokerCmd(self._conn.recv())
             flags = socket.getsockopt(zmq.EVENTS)
             while flags & zmq.POLLIN:
                 payload = await socket.recv_multipart()
@@ -149,8 +174,6 @@ class ZmqBrokerProcess(object):
         callback_matches = tuple((regexp.match(topic), callback) for regexp, callback in self._callbacks)
         callbacks_list = tuple((callback, tuple(match.groups())) for match, callback in callback_matches if match)
         if len(callbacks_list):
-            # FIXME : TODO : TEST
-            #self._conn.send((topic, msg, 0))
             #print (topic)
             await self._sockets['strat:pub'].send_multipart([topic.encode('utf8'), msg.DESCRIPTOR.full_name.encode('utf8'), msg.SerializeToString()])
 
