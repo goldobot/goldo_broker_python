@@ -31,7 +31,7 @@ def ping(msg):
     return b''
 
 @nucleo_out('os/heap_stats', nucleo_message_ids.HeapStats)
-def watchdog_state(payload):
+def os_heap_stats(payload):
     return _pb2.deserialize('goldo.nucleo.FreeRTOSHeapStats', payload[:8])
     
 @nucleo_out('os/tasks_stats', nucleo_message_ids.TaskStats)
@@ -72,7 +72,7 @@ def os_task_statistics_odrive_comm(payload):
     return _pb2.deserialize('goldo.nucleo.statistics.ODriveCommTaskStatistics', payload)
 
 @nucleo_out('os/task_statistics/propulsion', nucleo_message_ids.PropulsionTaskStatistics)
-def os_task_statistics_uart_comm(payload):
+def os_task_statistics_propulsion(payload):
     return _pb2.deserialize('goldo.nucleo.statistics.PropulsionTaskStatistics', payload)
 
 
@@ -93,7 +93,7 @@ def match_timer_start(msg):
     return b''
     
 @nucleo_in('match/timer/stop', nucleo_message_ids.MatchTimerStop)
-def match_timer_start(msg):
+def match_timer_stop(msg):
     return b''
 
 @nucleo_out('match/end', nucleo_message_ids.MatchEnd)
@@ -274,7 +274,7 @@ def propulsion_execute_reposition(msg):
     return _pb2.serialize(msg)
 
 @nucleo_in('propulsion/cmd/measure_normal', nucleo_message_ids.PropulsionMeasureNormal)
-def propulsion_execute_reposition(msg):
+def propulsion_cmd_measure_normal(msg):
     return _pb2.serialize(msg)
 
 @nucleo_in('propulsion/cmd/move_to', nucleo_message_ids.PropulsionExecuteMoveTo)
@@ -290,7 +290,7 @@ def propulsion_execute_point_to(msg):
     return _pb2.serialize(msg)
 
 @nucleo_in('propulsion/cmd/point_to_back', nucleo_message_ids.PropulsionExecutePointToBack)
-def propulsion_execute_point_to(msg):
+def propulsion_execute_point_to_back(msg):
     return _pb2.serialize(msg)
 
 @nucleo_in('propulsion/cmd/face_direction', nucleo_message_ids.PropulsionExecuteFaceDirection)
@@ -344,7 +344,7 @@ def propulsion_state(payload):
     return _pb2.deserialize('goldo.nucleo.propulsion.StateChange', payload)
 
 @nucleo_out('propulsion/odrive/telemetry', nucleo_message_ids.PropulsionODriveTelemetry)
-def propulsion_telemetry(payload):
+def propulsion_odrive_telemetry(payload):
     return _pb2.deserialize('goldo.nucleo.odrive.Telemetry', payload)
 
 @nucleo_out('propulsion/odometry_stream', nucleo_message_ids.PropulsionOdometryStream)
