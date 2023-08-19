@@ -2,7 +2,7 @@ import sys
 import signal
 
 from goldo_broker.broker.broker_process import run_broker_process
-from goldo_broker.broker.zmq_codecs import nucleo_in_stat,nucleo_out_stat,nucleo_bad_stat,nucleo_very_bad_stat
+from goldo_broker.broker.zmq_codecs import nucleo_in_stat,nucleo_out_stat,nucleo_out_bad_stat,nucleo_very_bad_stat
 
 def goldo_signal_handler(sig,frame):
     print (" DEBUG GOLDO : sys.exit(0)")
@@ -14,9 +14,9 @@ def goldo_signal_handler(sig,frame):
     for k in nucleo_out_stat.keys():
         print (k, nucleo_out_stat[k])
     print ()
-    print ("nucleo_bad_stat:")
-    for k in nucleo_bad_stat.keys():
-        print (k, nucleo_bad_stat[k])
+    print ("nucleo_out_bad_stat:")
+    for k in nucleo_out_bad_stat.keys():
+        print (k, nucleo_out_bad_stat[k])
     print ()
     print ("nucleo_very_bad_stat:")
     print (nucleo_very_bad_stat)

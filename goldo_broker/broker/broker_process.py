@@ -89,7 +89,7 @@ class ZmqBrokerProcess(object):
                 pattern = cmd_msg.value
                 print ("received REGISTER_CALLBACK {}".format(pattern))
                 if pattern in self._pattern_list:
-                    print ("  pattern already present registered.")
+                    print ("  pattern already registered.")
                     return
                 self._pattern_list.append(pattern)
                 self._callbacks.append((re.compile(f"^{pattern}$"), 0))
