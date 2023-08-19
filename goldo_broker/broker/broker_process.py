@@ -40,6 +40,7 @@ class ZmqBrokerProcess(object):
         self._sockets = {}
         self._monitors = {}
         self._socket_codecs = {}
+        self._pattern_list = []
         self._callbacks = []
         self._forwards = []
         self._tasks = {}
@@ -87,6 +88,10 @@ class ZmqBrokerProcess(object):
                 cmd_msg.ParseFromString(payload)
                 pattern = cmd_msg.value
                 print ("received REGISTER_CALLBACK {}".format(pattern))
+                if pattern in self._pattern_list:
+                    print ("  pattern already present registered.")
+                    return
+                self._pattern_list.append(pattern)
                 self._callbacks.append((re.compile(f"^{pattern}$"), 0))
                 return
             elif topic == "broker/admin/cmd/register_forward":

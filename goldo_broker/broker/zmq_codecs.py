@@ -17,11 +17,21 @@ __all__ = ['NucleoCodec', 'ProtobufCodec', 'RPLidarCodec']
 
 LOGGER = logging.getLogger(__name__)
 
+nucleo_in_stat = {}
+nucleo_out_stat = {}
+nucleo_bad_stat = {}
+nucleo_very_bad_stat = 0
+
 class NucleoCodec:
     def serialize(self, topic, msg):
         msg_type, encoder = _reg._in.get(topic, (None, None))
+        if msg_type not in nucleo_out_stat:
+            nucleo_out_stat[msg_type] = 0
+        else:
+            nucleo_out_stat[msg_type] = nucleo_out_stat[msg_type] + 1
         if encoder is None:
             LOGGER.error("NucleoCodec.serialize() error: topic='{}' msg_type={}".format(topic, msg_type))
+            nucleo_very_bad_stat = nucleo_very_bad_stat + 1
             return None
         return [_msg_type_struct.pack(0, 0, msg_type, 0, 0), encoder(msg)]
 
@@ -31,6 +41,10 @@ class NucleoCodec:
         comm_id, reserved, msg_type, t_seconds, t_nanoseconds = _msg_type_struct.unpack(msg_header)
         topic, decoder = _reg._out.get(msg_type, (None, None))
         if topic is not None:
+            if msg_type not in nucleo_in_stat:
+                nucleo_in_stat[msg_type] = 0
+            else:
+                nucleo_in_stat[msg_type] = nucleo_in_stat[msg_type] + 1
             try:
                 msg = decoder(msg_body)
                 if msg is None:
@@ -40,6 +54,10 @@ class NucleoCodec:
                 return None, None
             return topic, msg
         else:
+            if msg_type not in nucleo_bad_stat:
+                nucleo_bad_stat[msg_type] = 0
+            else:
+                nucleo_bad_stat[msg_type] = nucleo_bad_stat[msg_type] + 1
             return None, None
 
 
